@@ -1,3 +1,9 @@
 # StamFluidforGames
 
-<video src="https://github.com/user-attachments/assets/d1f251df-5032-4b54-ad79-cabe47deb4b7" >
+Diffusion
+
+<video src="https://github.com/QjaYo/StamFluidforGames/issues/2#issue-3624146060">
+
+Advection
+
+<video src="https://github.com/QjaYo/StamFluidforGames/issues/3#issue-3624149617">
