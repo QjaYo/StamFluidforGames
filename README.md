@@ -1,6 +1,6 @@
 # StamFluidforGames
 
-Github 영상 화질이 매우 낮음
+Github 영상 화질이 매우 낮음. 실제 코드 실행하면 더 근사함
 
 ## Diffusion
 
