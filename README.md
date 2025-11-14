@@ -1,5 +1,7 @@
 # StamFluidforGames
 
+Github 영상 화질이 매우 낮음
+
 ## Diffusion
 
 <video src="https://github.com/user-attachments/assets/cd0c973f-1755-4048-8f00-54ab56c6a7cb" width="400" controls></video>
