@@ -1,0 +1,51 @@
+# Existing project ignores
+asset/
+claude.md
+
+# Build outputs
+build/
+cmake-build-*/
+out/
+bin/
+lib/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+Testing/
+
+# Compiled binaries and objects
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.exe
+*.app/
+*.dSYM/
+
+# Editor and language-server local state
+.vscode/
+.idea/
+.cache/
+.clangd/
+
+# Local assistant/tool settings
+.claude/
+
+# OS and temporary files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Local backups
+_backup*/
