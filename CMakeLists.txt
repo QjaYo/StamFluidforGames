@@ -5,15 +5,23 @@ project(StamFluidforGames VERSION 1.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
 # Generate compile_commands.json for editor and language-server support.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Executable target name.
 set(EXECUTABLE_NAME "StamFluidforGames")
 
-# Root directory for external libraries.
-# The project remains portable as long as this directory structure is preserved.
-set(EXTERNAL_LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../External/Libraries" CACHE PATH "Root directory for external libraries")
+# Optional dependency roots. Prefer package targets over hard-coded library files.
+set(VCPKG_PACKAGES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../vcpkg/packages" CACHE PATH "vcpkg packages directory")
+set(EXTERNAL_LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../External/Libraries" CACHE PATH "Legacy external libraries directory")
+
+list(APPEND CMAKE_PREFIX_PATH
+    "${VCPKG_PACKAGES_DIR}/glad_x64-linux"
+)
 
 # Source directory.
 set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/source)
@@ -24,23 +32,41 @@ set(HEADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/header)
 # Collect source files.
 file(GLOB SOURCE_FILES "${SOURCE_DIR}/*.cpp")
 
-# Build GLAD as a static library.
-# This assumes glad.c is located under the configured external libraries path.
-add_library(glad STATIC ${EXTERNAL_LIBS_DIR}/glad/src/glad.c)
-# Add GLAD include paths.
-target_include_directories(glad PUBLIC
-    ${EXTERNAL_LIBS_DIR}/include
-    ${EXTERNAL_LIBS_DIR}/include/glad
-)
+# Dependencies.
+find_package(glad CONFIG QUIET)
+if(NOT TARGET glad::glad)
+    set(GLAD_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/externel/glad.c")
+    find_path(GLAD_INCLUDE_DIR
+        NAMES glad/glad.h
+        HINTS
+            "${VCPKG_PACKAGES_DIR}/glad_x64-linux/include"
+            "${EXTERNAL_LIBS_DIR}/include"
+    )
 
-# Configure GLFW as an imported static library.
-add_library(glfw STATIC IMPORTED)
+    if(NOT EXISTS "${GLAD_SOURCE}" OR NOT GLAD_INCLUDE_DIR)
+        message(FATAL_ERROR
+            "Could not find GLAD. Install glad with vcpkg or provide glad.c/glad.h. "
+            "Checked source: ${GLAD_SOURCE}"
+        )
+    endif()
 
-# Set the GLFW library file and include path.
-set_target_properties(glfw PROPERTIES
-    IMPORTED_LOCATION "${EXTERNAL_LIBS_DIR}/lib/libglfw3.a"
-    INTERFACE_INCLUDE_DIRECTORIES "${EXTERNAL_LIBS_DIR}/include"
+    add_library(glad_local STATIC "${GLAD_SOURCE}")
+    target_include_directories(glad_local PUBLIC "${GLAD_INCLUDE_DIR}")
+    add_library(glad::glad ALIAS glad_local)
+endif()
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GLFW3 REQUIRED IMPORTED_TARGET glfw3)
+
+find_path(STB_INCLUDE_DIR
+    NAMES stb_image.h
+    HINTS
+        "${VCPKG_PACKAGES_DIR}/stb_x64-linux/include"
+        "${EXTERNAL_LIBS_DIR}/include"
 )
+if(NOT STB_INCLUDE_DIR)
+    message(FATAL_ERROR "Could not find stb_image.h. Install stb with vcpkg or set STB_INCLUDE_DIR.")
+endif()
 
 # Create the executable.
 add_executable(${EXECUTABLE_NAME} ${SOURCE_FILES})
@@ -48,17 +74,21 @@ add_executable(${EXECUTABLE_NAME} ${SOURCE_FILES})
 # Add project header paths.
 target_include_directories(${EXECUTABLE_NAME} PRIVATE 
     ${HEADER_DIR}
+    ${STB_INCLUDE_DIR}
 )
 
 # Expose the project source directory to C++ code.
 # This is used to build paths for shaders and other runtime resources.
-target_compile_definitions(${EXECUTABLE_NAME} PRIVATE "PROJECT_SOURCE_DIR=\"${CMAKE_SOURCE_DIR}\"")
+target_compile_definitions(${EXECUTABLE_NAME} PRIVATE
+    "PROJECT_SOURCE_DIR=\"${CMAKE_SOURCE_DIR}\""
+    "CMAKE_BUILD_TYPE=\"${CMAKE_BUILD_TYPE}\""
+)
 
 
 # Link libraries.
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE
-    glad
-    glfw
+    glad::glad
+    PkgConfig::GLFW3
 )
 
 # Link macOS frameworks required by GLFW.
